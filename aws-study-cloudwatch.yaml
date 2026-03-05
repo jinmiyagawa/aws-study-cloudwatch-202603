@@ -113,7 +113,7 @@ Resources:
         - Key: Name
           Value: aws-study-ec2
 
-# ---------- Alarm -----------
+# ---------- CloudWatch Alarm (CPU) -----------
   CpuAlarmTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -127,6 +127,27 @@ Resources:
       TopicArn: !Ref CpuAlarmTopic
       Protocol: email
       Endpoint: !Ref AlarmEmail
+
+  CpuHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "EC2 CPUUtilization is too high"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId 
+          Value: !Ref WebInstance
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 60
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref CpuAlarmTopic
+      OKActions:
+        - !Ref CpuAlarmTopic
 
 # ---------- Output コンソール→スタック→出力タブ -----------
 Outputs:
