@@ -18,6 +18,10 @@ Parameters:
     AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$'
     ConstraintDescription: 例 203.0.113.45/32 の形式で入力してください
 
+  AlarmEmail:
+    Type: String
+    Description: 通知先メールアドレス
+
 # ---------- VPC ----------
 Resources:
   VPC:
@@ -109,8 +113,48 @@ Resources:
         - Key: Name
           Value: aws-study-ec2
 
+# ---------- CloudWatch Alarm (CPU) -----------
+  CpuAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - Key: Name
+          Value: aws-study-cpu-alarm-topic
+
+  CpuAlarmSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref CpuAlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  CpuHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "EC2 CPUUtilization is too high"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId 
+          Value: !Ref WebInstance
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 60
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref CpuAlarmTopic
+      OKActions:
+        - !Ref CpuAlarmTopic
+
 # ---------- Output コンソール→スタック→出力タブ -----------
 Outputs:
   Ec2PublicIp:
     Description: EC2 public IPv4
     Value: !GetAtt WebInstance.PublicIp
+
+  CpuAlarmTopicArn:
+    Description: SNS topic ARN for CPU alarms
+    Value: !Ref CpuAlarmTopic
